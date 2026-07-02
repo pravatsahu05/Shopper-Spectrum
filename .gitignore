@@ -28,4 +28,4 @@ models/
 
 data/
 
-reports/
+reports/"models/*.pkl" 
