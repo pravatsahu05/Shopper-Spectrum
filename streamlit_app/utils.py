@@ -1,6 +1,7 @@
 import joblib
 import pandas as pd
 import streamlit as st
+from sklearn.metrics.pairwise import cosine_similarity
 
 from config import (
     CLEAN_DATA,
@@ -34,7 +35,32 @@ def load_kmeans():
 
 @st.cache_resource
 def load_similarity():
-    return joblib.load(SIMILARITY_MATRIX_PATH)
+    if SIMILARITY_MATRIX_PATH.exists():
+        return joblib.load(SIMILARITY_MATRIX_PATH)
+
+    clean_df = pd.read_csv(
+        CLEAN_DATA,
+        usecols=["CustomerID", "Description", "Quantity"],
+    )
+
+    customer_product_matrix = pd.pivot_table(
+        clean_df,
+        index="CustomerID",
+        columns="Description",
+        values="Quantity",
+        aggfunc="sum",
+        fill_value=0,
+    )
+
+    customer_product_matrix = (customer_product_matrix > 0).astype(int)
+    product_customer_matrix = customer_product_matrix.T
+    similarity_matrix = cosine_similarity(product_customer_matrix)
+
+    return pd.DataFrame(
+        similarity_matrix,
+        index=product_customer_matrix.index,
+        columns=product_customer_matrix.index,
+    )
 
 
 @st.cache_resource
